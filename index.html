@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Weather Station</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #1a1a1a;
+            --bg-card: #252525;
+            --bg-card-light: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-tertiary: rgba(255, 255, 255, 0.5);
+            --accent-blue: #4fa4ff;
+            --accent-green: #4caf50;
+            --accent-yellow: #ffb74d;
+            --accent-red: #f44336;
+            --glow-warm: rgba(255, 183, 77, 0.15);
+            --glow-cool: rgba(79, 164, 255, 0.15);
+            --overlay-dark: rgba(0, 0, 0, 0.5);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header Styles */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .back-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-green);
+        }
+        
+        .settings-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .settings-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        
+        /* Arduino Weather Station */
+        .weather-station {
+            background-color: var(--bg-card);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            padding: 20px;
+        }
+        
+        .station-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .station-title {
+            font-size: 1.8rem;
+            font-weight: 500;
+        }
+        
+        .station-model {
+            font-size: 0.9rem;
+            color: var(--text-tertiary);
+        }
+        
+        /* Temperature Display */
+        .temp-display {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 40px 0;
+        }
+        
+        .temp-circle {
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle, var(--bg-card-light) 60%, transparent 61%);
+            position: relative;
+        }
+        
+        .temp-value {
+            font-size: 3.5rem;
+            font-weight: 300;
+        }
+        
+        .temp-unit {
+            font-size: 1.2rem;
+            margin-top: -10px;
+            color: var(--text-secondary);
+        }
+        
+        .temp-status {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        .temp-circle-indicator {
+            position: absolute;
+            width: calc(100% - 20px);
+            height: calc(100% - 20px);
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top: 2px solid var(--accent-blue);
+            border-right: 2px solid var(--accent-blue);
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+        }
+        
+        .temp-min-max {
+            position: absolute;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+            bottom: 15px;
+        }
+        
+        .temp-min {
+            left: 20px;
+            position: absolute;
+        }
+        
+        .temp-max {
+            right: 20px;
+            position: absolute;
+        }
+        
+        /* Sensors Grid */
+        .sensors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .sensor-card {
+            background-color: var(--bg-card-light);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .sensor-title {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .sensor-icon {
+            color: var(--accent-blue);
+        }
+        
+        .sensor-value {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin: 10px 0;
+        }
+        
+        .sensor-unit {
+            font-size: 0.9rem;
+            color: var(--text-tertiary);
+        }
+        
+        .sensor-progress {
+            width: 100%;
+            height: 6px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin-top: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        
+        .humidity-progress .progress-bar {
+            background-color: var(--accent-blue);
+        }
+        
+        .pressure-progress .progress-bar {
+            background-color: var(--accent-yellow);
+        }
+        
+        /* Forecast Panel */
+        .forecast-panel {
+            margin-top: 30px;
+            background-color: var(--bg-card-light);
+            border-radius: 15px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .forecast-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .forecast-title {
+            font-size: 1.1rem;
+        }
+        
+        .forecast-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 0;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .forecast-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            background: radial-gradient(circle, var(--glow-warm) 0%, transparent 70%);
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        
+        .forecast-status {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .forecast-desc {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 300px;
+        }
+        
+        .forecast-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.05;
+            background-size: cover;
+            background-position: center;
+            filter: blur(10px);
+        }
+        
+        /* Serial Monitor */
+        .monitor-panel {
+            margin-top: 20px;
+            background-color: var(--bg-card);
+            border-radius: 15px;
+            padding: 20px;
+        }
+        
+        .monitor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .monitor-title {
+            font-size: 1.1rem;
+        }
+        
+        .monitor-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 4px 10px;
+            border-radius: 10px;
+        }
+        
+        .monitor-content {
+            background-color: #1a1a1a;
+            border-radius: 10px;
+            height: 200px;
+            overflow-y: auto;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            color: var(--accent-green);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .output-line {
+            margin-bottom: 5px;
+            opacity: 0;
+            animation: fade-in 0.3s forwards;
+        }
+        
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Control Panel */
+        .control-panel {
+            background-color: var(--bg-card);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .control-header {
+            margin-bottom: 20px;
+        }
+        
+        .control-title {
+            font-size: 1.1rem;
+        }
+        
+        .sliders-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .slider-card {
+            background-color: var(--bg-card-light);
+            border-radius: 15px;
+            padding: 20px;
+        }
+        
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .slider-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .slider-value {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+        
+        .slider-container {
+            position: relative;
+            margin-top: 10px;
+        }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .temp-slider::-webkit-slider-thumb {
+            background: linear-gradient(135deg, #ff7043, #ff9800);
+        }
+        
+        .humidity-slider::-webkit-slider-thumb {
+            background: linear-gradient(135deg, #29b6f6, #4fc3f7);
+        }
+        
+        .pressure-slider::-webkit-slider-thumb {
+            background: linear-gradient(135deg, #ffa726, #ffca28);
+        }
+        
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.7rem;
+            color: var(--text-tertiary);
+        }
+        
+        /* Weather Effects */
+        .weather-effects {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 5;
+        }
+        
+        .raindrop {
+            position: absolute;
+            width: 2px;
+            height: 15px;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.6));
+            opacity: 0;
+            border-radius: 0 0 5px 5px;
+        }
+        
+        .snowflake {
+            position: absolute;
+            color: white;
+            font-size: 12px;
+            opacity: 0;
+        }
+        
+        .sun-effect {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(255, 183, 77, 0.6) 0%, transparent 70%);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+            transition: all 1s ease;
+        }
+        
+        .cloud {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            filter: blur(10px);
+            opacity: 0;
+        }
+        
+        /* Responsive styles */
+        @media (min-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .weather-station {
+                grid-column: 1 / 3;
+            }
+        }
+        
+        @media (max-width: 767px) {
+            .temp-circle {
+                width: 200px;
+                height: 200px;
+            }
+            
+            .temp-value {
+                font-size: 3rem;
+            }
+            
+            .station-title {
+                font-size: 1.5rem;
+            }
+        }
+        
+        /* Animated Character */
+        .character-container {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 183, 77, 1) 0%, rgba(255, 152, 0, 1) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px var(--glow-warm);
+            z-index: 20;
+            animation: pulse 3s infinite ease-in-out;
+        }
+        
+        .character-face {
+            position: relative;
+            width: 40px;
+            height: 25px;
+        }
+        
+        .character-eye {
+            position: absolute;
+            width: 8px;
+            height: 12px;
+            background-color: #333;
+            border-radius: 50%;
+        }
+        
+        .character-eye.left {
+            left: 5px;
+        }
+        
+        .character-eye.right {
+            right: 5px;
+        }
+        
+        .character-mouth {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 8px;
+            border-bottom: 2px solid #333;
+            border-radius: 50%;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* Animation for floating controls */
+        .floating-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+        
+        .control-button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .voice-button {
+            width: 70px;
+            height: 70px;
+        }
+        
+        .voice-icon {
+            width: 30px;
+            height: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header Section -->
+        <div class="header">
+            <div class="header-left">
+                <div class="back-btn">
+                    <i class="fas fa-chevron-left"></i>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>Online</span>
+                </div>
+            </div>
+            <div class="settings-btn">
+                <i class="fas fa-cog"></i>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Arduino Weather Station -->
+            <div class="weather-station">
+                <div class="station-header">
+                    <div>
+                        <h1 class="station-title">Arduino Weather Station</h1>
+                        <div class="station-model">Smart AI Forecast</div>
+                    </div>
+                </div>
+                
+                <!-- Temperature Display -->
+                <div class="temp-display">
+                    <div class="temp-circle">
+                        <div class="temp-circle-indicator" id="temp-indicator"></div>
+                        <div class="temp-value" id="main-temp">25.0</div>
+                        <div class="temp-unit">°C</div>
+                        <div class="temp-status" id="temp-status">Normal</div>
+                    </div>
+                    <div class="temp-min-max">
+                        <span class="temp-min">-20°C</span>
+                        <span class="temp-max">50°C</span>
+                    </div>
+                </div>
+                
+                <!-- Character/Assistant -->
+                <div class="character-container">
+                    <div class="character-face">
+                        <div class="character-eye left"></div>
+                        <div class="character-eye right"></div>
+                        <div class="character-mouth"></div>
+                    </div>
+                </div>
+                
+                <!-- Weather Effects -->
+                <div class="weather-effects" id="weather-effects">
+                    <div class="sun-effect" id="sun-effect"></div>
+                </div>
+                
+                <!-- Sensors Grid -->
+                <div class="sensors-grid">
+                    <div class="sensor-card">
+                        <div class="sensor-title">
+                            <i class="fas fa-tint sensor-icon"></i>
+                            Humidity
+                        </div>
+                        <div class="sensor-value" id="hum-display">60.0</div>
+                        <div class="sensor-unit">% relative humidity</div>
+                        <div class="sensor-progress humidity-progress">
+                            <div class="progress-bar" id="hum-progress" style="width: 60%;"></div>
+                        </div>
+                    </div>
+                    <div class="sensor-card">
+                        <div class="sensor-title">
+                            <i class="fas fa-compress-alt sensor-icon"></i>
+                            Air Pressure
+                        </div>
+                        <div class="sensor-value" id="pres-display">1013.0</div>
+                        <div class="sensor-unit">hPa</div>
+                        <div class="sensor-progress pressure-progress">
+                            <div class="progress-bar" id="pres-progress" style="width: 50%;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Forecast Panel -->
+                <div class="forecast-panel">
+                    <div class="forecast-header">
+                        <div class="forecast-title">AI Weather Forecast</div>
+                    </div>
+                    <div class="forecast-content">
+                        <div class="forecast-icon" id="forecast-icon">⛅</div>
+                        <div class="forecast-status" id="forecast-status">Stable Weather</div>
+                        <div class="forecast-desc" id="forecast-desc">Normal conditions detected based on temperature, humidity and pressure readings.</div>
+                    </div>
+                    <div class="forecast-bg" id="forecast-bg"></div>
+                </div>
+            </div>
+            
+            <!-- Monitor Panel -->
+            <div class="monitor-panel">
+                <div class="monitor-header">
+                    <div class="monitor-title">Serial Monitor</div>
+                    <div class="monitor-status">
+                        <div class="status-dot"></div>
+                        <span>Connected at 9600 baud</span>
+                    </div>
+                </div>
+                <div class="monitor-content" id="serial-output">
+                    <div class="output-line">------------------</div>
+                    <div class="output-line" id="timestamp">[04:08:14]</div>
+                    <div class="output-line" id="monitor-temp">Temp: 25.0 °C</div>
+                    <div class="output-line" id="monitor-hum">Humidity: 60.0 %</div>
+                    <div class="output-line" id="monitor-pres">Pressure: 1013.0 hPa</div>
+                    <div class="output-line" id="monitor-forecast">Forecast: Stable Weather</div>
+                    <div class="output-line">------------------</div>
+                </div>
+            </div>
+            
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <div class="control-header">
+                    <div class="control-title">Sensor Controls</div>
+                </div>
+                <div class="sliders-container">
+                    <div class="slider-card">
+                        <div class="slider-header">
+                            <div class="slider-title">
+                                <i class="fas fa-thermometer-half"></i>
+                                Temperature
+                            </div>
+                            <div class="slider-value" id="temp-value">25.0°C</div>
+                        </div>
+                        <div class="slider-container">
+                            <input type="range" id="temp-slider" class="temp-slider" min="-20" max="50" value="25" step="0.1">
+                            <div class="slider-labels">
+                                <span>-20°C</span>
+                                <span>50°C</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slider-card">
+                        <div class="slider-header">
+                            <div class="slider-title">
+                                <i class="fas fa-tint"></i>
+                                Humidity
+                            </div>
+                            <div class="slider-value" id="hum-value">60.0%</div>
+                        </div>
+                        <div class="slider-container">
+                            <input type="range" id="hum-slider" class="humidity-slider" min="0" max="100" value="60" step="0.1">
+                            <div class="slider-labels">
+                                <span>0%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slider-card">
+                        <div class="slider-header">
+                            <div class="slider-title">
+                                <i class="fas fa-compress-alt"></i>
+                                Pressure
+                            </div>
+                            <div class="slider-value" id="pres-value">1013.0 hPa</div>
+                        </div>
+                        <div class="slider-container">
+                            <input type="range" id="pres-slider" class="pressure-slider" min="950" max="1050" value="1013" step="0.1">
+                            <div class="slider-labels">
+                                <span>950 hPa</span>
+                                <span>1050 hPa</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
+    
+    <script>
+        // DOM Elements
+        const tempSlider = document.getElementById('temp-slider');
+        const humSlider = document.getElementById('hum-slider');
+        const presSlider = document.getElementById('pres-slider');
+        const tempValue = document.getElementById('temp-value');
+        const humValue = document.getElementById('hum-value');
+        const presValue = document.getElementById('pres-value');
+        const serialOutput = document.getElementById('serial-output');
+        const forecastIcon = document.getElementById('forecast-icon');
+        const forecastStatus = document.getElementById('forecast-status');
+        const forecastDesc = document.getElementById('forecast-desc');
+        const forecastBg = document.getElementById('forecast-bg');
+        const mainTemp = document.getElementById('main-temp');
+        const tempStatus = document.getElementById('temp-status');
+        const tempIndicator = document.getElementById('temp-indicator');
+        const humDisplay = document.getElementById('hum-display');
+        const presDisplay = document.getElementById('pres-display');
+        const humProgress = document.getElementById('hum-progress');
+        const presProgress = document.getElementById('pres-progress');
+        const monitorTemp = document.getElementById('monitor-temp');
+        const monitorHum = document.getElementById('monitor-hum');
+        const monitorPres = document.getElementById('monitor-pres');
+        const monitorForecast = document.getElementById('monitor-forecast');
+        const timestamp = document.getElementById('timestamp');
+        const weatherEffects = document.getElementById('weather-effects');
+        const sunEffect = document.getElementById('sun-effect');
+        
+        // Weather effects
+        function createSnow() {
+            const snowContainer = document.createElement('div');
+            snowContainer.id = 'snow-container';
+            weatherEffects.appendChild(snowContainer);
+            
+            const snowflakes = ['❄', '❅', '❆'];
+            
+            for (let i = 0; i < 30; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.className = 'snowflake';
+                snowflake.textContent = snowflakes[Math.floor(Math.random() * snowflakes.length)];
+                
+                snowflake.style.left = `${Math.random() * 100}%`;
+                snowflake.style.top = `-10px`;
+                snowflake.style.fontSize = `${10 + Math.random() * 10}px`;
+                snowflake.style.animation = `snow-fall ${5 + Math.random() * 7}s linear infinite`;
+                snowflake.style.animationDelay = `${Math.random() * 5}s`;
+                
+                snowContainer.appendChild(snowflake);
+            }
+            
+            if (!document.getElementById('snow-keyframes')) {
+                const style = document.createElement('style');
+                style.id = 'snow-keyframes';
+                style.innerHTML = `
+                    @keyframes snow-fall {
+                        0% { transform: translateY(0) rotate(0); opacity: 0; }
+                        10% { opacity: 0.8; }
+                        90% { opacity: 0.7; }
+                        100% { transform: translateY(400px) rotate(360deg); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            return snowContainer;
+        }
+        
+        function createRain() {
+            const rainContainer = document.createElement('div');
+            rainContainer.id = 'rain-container';
+            weatherEffects.appendChild(rainContainer);
+            
+            for (let i = 0; i < 60; i++) {
+                const raindrop = document.createElement('div');
+                raindrop.className = 'raindrop';
+                
+                raindrop.style.left = `${Math.random() * 100}%`;
+                raindrop.style.top = `-10px`;
+                raindrop.style.height = `${15 + Math.random() * 10}px`;
+                raindrop.style.animation = `rain-fall ${0.5 + Math.random() * 0.5}s linear infinite`;
+                raindrop.style.animationDelay = `${Math.random() * 2}s`;
+                
+                rainContainer.appendChild(raindrop);
+            }
+            
+            if (!document.getElementById('rain-keyframes')) {
+                const style = document.createElement('style');
+                style.id = 'rain-keyframes';
+                style.innerHTML = `
+                    @keyframes rain-fall {
+                        from { transform: translateY(0); opacity: 0; }
+                        10% { opacity: 0.8; }
+                        90% { opacity: 0.7; }
+                        to { transform: translateY(400px); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            return rainContainer;
+        }
+        
+        function createClouds() {
+            const cloudContainer = document.createElement('div');
+            cloudContainer.id = 'cloud-container';
+            weatherEffects.appendChild(cloudContainer);
+            
+            for (let i = 0; i < 5; i++) {
+                const cloud = document.createElement('div');
+                cloud.className = 'cloud';
+                
+                const size = 100 + Math.random() * 150;
+                cloud.style.width = `${size}px`;
+                cloud.style.height = `${size * 0.6}px`;
+                cloud.style.left = `${Math.random() * 100}%`;
+                cloud.style.top = `${10 + Math.random() * 40}%`;
+                cloud.style.animation = `float-cloud ${20 + Math.random() * 30}s linear infinite`;
+                cloud.style.animationDelay = `${Math.random() * 10}s`;
+                cloud.style.opacity = '0';
+                
+                cloudContainer.appendChild(cloud);
+            }
+            
+            if (!document.getElementById('cloud-keyframes')) {
+                const style = document.createElement('style');
+                style.id = 'cloud-keyframes';
+                style.innerHTML = `
+                    @keyframes float-cloud {
+                        0% { transform: translateX(-100%); opacity: 0; }
+                        10% { opacity: 0.2; }
+                        90% { opacity: 0.2; }
+                        100% { transform: translateX(100%); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            return cloudContainer;
+        }
+        
+        // Create weather effects
+        const snowContainer = createSnow();
+        const rainContainer = createRain();
+        const cloudContainer = createClouds();
+        
+        // Hide effects initially
+        snowContainer.style.opacity = '0';
+        rainContainer.style.opacity = '0';
+        
+        // Helper function for mapping value ranges
+        function mapRange(value, fromLow, fromHigh, toLow, toHigh) {
+            return toLow + (value - fromLow) * (toHigh - toLow) / (fromHigh - fromLow);
+        }
+        
+        // Update weather based on sensors
+        function updateWeather() {
+            const temp = parseFloat(tempSlider.value);
+            const hum = parseFloat(humSlider.value);
+            const pres = parseFloat(presSlider.value);
+            
+            // Update display values
+            tempValue.textContent = `${temp.toFixed(1)}°C`;
+            humValue.textContent = `${hum.toFixed(1)}%`;
+            presValue.textContent = `${pres.toFixed(1)} hPa`;
+            
+            mainTemp.textContent = temp.toFixed(1);
+            humDisplay.textContent = hum.toFixed(1);
+            presDisplay.textContent = pres.toFixed(1);
+            
+            // Update progress bars
+            humProgress.style.width = `${hum}%`;
+            
+            // Map pressure to a percentage for the progress bar (950-1050 to 0-100)
+            const presPercentage = mapRange(pres, 950, 1050, 0, 100);
+            presProgress.style.width = `${presPercentage}%`;
+            
+            // Update temperature indicator (mapping -20 to 50 to 0 to 360 degrees)
+            const tempRotation = mapRange(temp, -20, 50, 0, 360);
+            tempIndicator.style.transform = `rotate(${tempRotation}deg)`;
+            
+            // Determine temperature status
+            if (temp < 0) {
+                tempStatus.textContent = "Very Cold";
+                tempStatus.style.color = "#29b6f6";
+            } else if (temp < 10) {
+                tempStatus.textContent = "Cold";
+                tempStatus.style.color = "#4fc3f7";
+            } else if (temp < 20) {
+                tempStatus.textContent = "Cool";
+                tempStatus.style.color = "#81d4fa";
+            } else if (temp < 25) {
+                tempStatus.textContent = "Normal";
+                tempStatus.style.color = "#4caf50";
+            } else if (temp < 30) {
+                tempStatus.textContent = "Warm";
+                tempStatus.style.color = "#ff9800";
+            } else if (temp < 35) {
+                tempStatus.textContent = "Hot";
+                tempStatus.style.color = "#ff7043";
+            } else {
+                tempStatus.textContent = "Very Hot";
+                tempStatus.style.color = "#f44336";
+            }
+            
+            // Update serial monitor
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            timestamp.textContent = `[${hours}:${minutes}:${seconds}]`;
+            monitorTemp.textContent = `Temp: ${temp.toFixed(1)} °C`;
+            monitorHum.textContent = `Humidity: ${hum.toFixed(1)} %`;
+            monitorPres.textContent = `Pressure: ${pres.toFixed(1)} hPa`;
+            
+            // Reset weather effects
+            snowContainer.style.opacity = '0';
+            rainContainer.style.opacity = '0';
+            sunEffect.style.opacity = '0';
+            sunEffect.style.transform = 'translate(-50%, -50%) scale(0)';
+            
+            // Determine forecast
+            let forecast, icon, description, bgImage;
+            
+            if (temp < 2 && hum > 70) {
+                forecast = "Snow Likely";
+                icon = "❄️";
+                description = "Low temperature and high humidity detected. Dress warmly and prepare for possible snow conditions.";
+                snowContainer.style.opacity = '0.7';
+                bgImage = "linear-gradient(135deg, #a1c4fd, #c2e9fb)";
+                forecastBg.style.background = "#e1f5fe";
+            } else if (hum > 80 && pres < 1000) {
+                forecast = "Rain Possible";
+                icon = "🌧️";
+                description = "High humidity and low pressure detected. Consider taking an umbrella with you today.";
+                rainContainer.style.opacity = '0.7';
+                bgImage = "linear-gradient(135deg, #6a85b6, #bac8e0)";
+                forecastBg.style.background = "#5d666b";
+            } else if (hum < 50 && pres > 1015) {
+                forecast = "Clear Day";
+                icon = "☀️";
+                description = "Low humidity and high pressure indicate clear skies and good visibility.";
+                sunEffect.style.opacity = '0.8';
+                sunEffect.style.transform = 'translate(-50%, -50%) scale(1)';
+                bgImage = "linear-gradient(135deg, #f6d365, #fda085)";
+                forecastBg.style.background = "#ffe082";
+            } else if (hum > 60 && pres < 1015 && pres > 1000) {
+                forecast = "Partly Cloudy";
+                icon = "⛅";
+                description = "Moderate humidity and pressure suggest partly cloudy conditions with occasional clear periods.";
+                sunEffect.style.opacity = '0.3';
+                sunEffect.style.transform = 'translate(-50%, -50%) scale(0.8)';
+                bgImage = "linear-gradient(135deg, #a8edea, #fed6e3)";
+                forecastBg.style.background = "#bbdefb";
+            } else {
+                forecast = "Stable Weather";
+                icon = "🌤️";
+                description = "Normal conditions detected based on temperature, humidity and pressure readings.";
+                bgImage = "linear-gradient(135deg, #89f7fe, #66a6ff)";
+                forecastBg.style.background = "#90caf9";
+            }
+            
+            // Add temperature modifiers
+            if (temp > 35) {
+                description += " Heat advisory: Stay hydrated and limit outdoor activities.";
+                if (icon === "☀️") icon = "🔥";
+            } else if (temp < 0) {
+                description += " Freeze warning: Protect exposed pipes and plants.";
+            }
+            
+            // Update forecast display
+            forecastIcon.textContent = icon;
+            forecastStatus.textContent = forecast;
+            forecastDesc.textContent = description;
+            monitorForecast.textContent = `Forecast: ${forecast}`;
+            
+            // Apply background gradient
+            forecastBg.style.backgroundImage = bgImage;
+        }
+        
+        // Add event listeners for sliders
+        tempSlider.addEventListener('input', () => {
+            tempValue.textContent = `${parseFloat(tempSlider.value).toFixed(1)}°C`;
+        });
+        
+        humSlider.addEventListener('input', () => {
+            humValue.textContent = `${parseFloat(humSlider.value).toFixed(1)}%`;
+        });
+        
+        presSlider.addEventListener('input', () => {
+            presValue.textContent = `${parseFloat(presSlider.value).toFixed(1)} hPa`;
+        });
+        
+        // Character interactions
+        const character = document.querySelector('.character-container');
+        character.addEventListener('click', () => {
+            const messages = [
+                "Looks like perfect weather today!",
+                "Don't forget your umbrella if you're going out.",
+                "Temperature is rising, stay hydrated!",
+                "Weather patterns look stable for now.",
+                "Sensors are working perfectly!"
+            ];
+            
+            // Create a tooltip
+            const tooltip = document.createElement('div');
+            tooltip.style.position = 'absolute';
+            tooltip.style.bottom = '70px';
+            tooltip.style.right = '20px';
+            tooltip.style.background = 'rgba(0, 0, 0, 0.8)';
+            tooltip.style.color = 'white';
+            tooltip.style.padding = '10px 15px';
+            tooltip.style.borderRadius = '10px';
+            tooltip.style.maxWidth = '250px';
+            tooltip.style.zIndex = '100';
+            tooltip.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+            tooltip.style.animation = 'fade-in 0.3s forwards';
+            
+            // Random message
+            tooltip.textContent = messages[Math.floor(Math.random() * messages.length)];
+            
+            document.querySelector('.weather-station').appendChild(tooltip);
+            
+            // Remove after delay
+            setTimeout(() => {
+                tooltip.style.animation = 'fade-out 0.3s forwards';
+                setTimeout(() => tooltip.remove(), 300);
+            }, 3000);
+            
+            // Add fade-out animation if not already added
+            if (!document.getElementById('fade-out-keyframes')) {
+                const style = document.createElement('style');
+                style.id = 'fade-out-keyframes';
+                style.innerHTML = `
+                    @keyframes fade-out {
+                        from { opacity: 1; transform: translateY(0); }
+                        to { opacity: 0; transform: translateY(10px); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        });
+        
+        // Initialize
+        function init() {
+            updateWeather();
+            setInterval(updateWeather, 5000);
+        }
+        
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
